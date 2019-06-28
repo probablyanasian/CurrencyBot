@@ -104,7 +104,7 @@ async def on_message(message):
     await message.channel.send(embed=discord.Embed(title=str(message.author), description="Current prefix is {0}".format(redis_server.get('current.prefix').decode('utf-8'))))
 
   if str(message.author.id) in os.getenv('owner_id'):
-    if message.content == 'cur_bot_reset_all'
+    if message.content == 'cur_bot_reset_all':
       default_all()
   #check for prefix first
   if message.content.startswith(prefix_char):
