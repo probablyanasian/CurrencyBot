@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+debug = True
+
 redisserver = redis.Redis(
   host=os.getenv('redis_hostname'),
   port=int(os.getenv('redis_port')), 
@@ -24,17 +26,22 @@ async def on_message(message):
   if message.author == client.user:
     return
 
-  #check for prefix helps slightly with efficiency (I think)
-  #Yes, ik I should've chosen a faster lang if I wanted efficiency.
-
+  #check for prefix first
   if message.content.startswith(str(prefixchar)):
     uinput = str(message.content).split(" ")
 
     channel = message.channel
-    if uinput[0] == str(prefixchar+'teststore'):
-      if len(uinput) >= 3:
-        redisserver.set(uinput[1], uinput[2].encode('utf-8'))
-        await channel.send(redisserver.get(uinput[1]).decode('utf-8'))
+    author = str(message.author)
+
+    #Test commands, test response
+    if debug:
+      if uinput[0] == str(prefixchar+'teststore'):
+        if len(uinput) >= 3:
+          redisserver.set(uinput[1], uinput[2].encode('utf-8'))
+          await channel.send(embed=discord.Embed(title="", description=redisserver.get(uinput[1]).decode('utf-8')))
+        else:
+          embed = discord.Embed(title=str(message.author)+' Invalid Command', description='Command requires 2 parameters {0} given'.format(len(uinput)-1, colour=0xff3333))
+          await channel.send(embed=embed)
   
 
 client.run(os.getenv('bot_token'))
