@@ -1,6 +1,8 @@
-A discord bot made for Discord Hack Week 2019
+#CurrencyBot
 
-Starting:
+##A discord bot made for Discord Hack Week 2019
+
+###Starting:
     
 -You'll need the following packages: 'discord.py', 'asyncio', 'dotenv', 'redis'
 
@@ -8,9 +10,9 @@ Starting:
 
 -Just run `python3 main.py` and it should be up and running!
     
-Commands:
+##Commands:
 
-Out of debug mode:
+###Out of debug mode:
 ```
 cur [none]/[id]/[username]/[username#discrim]: 0-1 parameter; Gets the current amount of money someone owns <Default: self>
 
@@ -19,7 +21,7 @@ cur [none]/[id]/[username]/[username#discrim]: 0-1 parameter; Gets the current a
 pick: no parameters; picks up money that's been dropped.
 ```
 
-Owner only:
+###Owner only:
 ```
 flushdb: no parameters; Clears the currently used RedisDB
 
@@ -30,7 +32,7 @@ changeprefix [newprefix]: 1 parameter; Changes to prefix to [newprefix]
 changecurrency [newcurrency]: 1 parameter; Changes to currency to [newcurrency]
 ```
 
-In debug mode:
+###In debug mode:
 
 ```
 teststore [key] [value]: 2 parameters; Tries to store a key-value pair into the Redis DB.
