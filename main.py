@@ -1,6 +1,7 @@
 import discord
 import redis
 import os
+import asyncio
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -16,7 +17,16 @@ redis_server = redis.Redis(
 
 client = discord.Client()
 
-prefixchar = "."
+def change_prefix():
+  global prefixchar
+  if redis_server.exists('current.prefix'):
+    #using previously set prefix
+    prefixchar = redis_server.get('current.prefix').decode('utf-8')
+  else: 
+    redis_server.set('current.prefix', '.')
+    prefixchar = redis_server.get('current.prefix').decode('utf-8')
+
+change_prefix()
 
 @client.event
 async def on_ready():
@@ -27,8 +37,12 @@ async def on_message(message):
   if message.author == client.user:
     return
 
+  #Get prefix not knowing current one.
+  if message.content == '.getprefix':
+    await message.channel.send(embed=discord.Embed(title=str(message.author), description="Current prefix is {0}".format(redis_server.get('current.prefix').decode('utf-8'))))
+
   #check for prefix first
-  if message.content.startswith(str(prefixchar)):
+  if message.content.startswith(prefixchar):
     uinput = str(message.content).split(" ", 1)
 
     command = uinput[0].strip(prefixchar)
@@ -37,7 +51,7 @@ async def on_message(message):
     try:
       params = uinput[1]
     except IndexError:
-      params = [""]
+      params = ""
 
     channel = message.channel
 
@@ -60,6 +74,30 @@ async def on_message(message):
           embed = discord.Embed(title=author_name + ' Invalid Command', description='Command requires 2 parameters {0} given'.format(len(split_params)))
           await channel.send(embed=embed)
 
+
+    if author_id in os.getenv('owner_id'):
+      if command == 'flushdb':
+        await channel.send(embed=discord.Embed(title="Are you sure? This will delete everything in the DB (Y/n)", color=16724787))
+        
+        def check(message):
+            if str(message.author.id) in os.getenv('owner_id') and str(message.content).lower() == 'n' and message.channel == channel:
+              raise asyncio.TimeoutError
+            return str(message.author.id) in os.getenv('owner_id') and str(message.content).lower() == 'y' and message.channel == channel
+        try:
+          msg = await client.wait_for('message', timeout=15.0, check=check)
+        except asyncio.TimeoutError:
+          await channel.send(embed=discord.Embed(title="FlushDB canceled."))
+        else:
+          redis_server.flushdb()
+          await channel.send(embed=discord.Embed(title="Current database flushed, prefix reset to '.'"))
+          change_prefix()
+       
+      if command == 'changeprefix':
+        redis_server.set('current.prefix', params)
+        change_prefix()
+        await channel.send(embed=discord.Embed(title=author_name, description='Prefix changed to {0}'.format(params)))
+
+
     if command in ['$', 'cur', 'currency']:
       if '#' in params:
         split_params = params.split('#', 1)
@@ -67,26 +105,34 @@ async def on_message(message):
       #No parameters, use ID to search  
       if params == "":
         #check if ID exists
-        if redis_server.exists('id_'+author_id) == 1:
+        if redis_server.exists('id.'+author_id):
           #search using it
-          await channel.send(discord.Embed(title=author_name, description=' has {0}'.format(redis_server.get('id'+author_id).decode('utf-8'))))
+          await channel.send(embed=discord.Embed(title='', description= '**'+author_name+'**'+ ' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8'))))
         #ID doesn't exist
         else:
           #Sets the author's amount to zero
-          redis_server.set('id_'+author_id, '0'.encode('utf-8'))
+          redis_server.set('id.'+author_id, '0'.encode('utf-8'))
           #Creates a hash table with Username -> user_discrim -> user_ID, for username searching
-          redis_server.hset('name_'+author_uname_only, author_discrim, author_id.encode('utf-8'))
+          redis_server.hset('name.'+author_uname_only, author_discrim, author_id.encode('utf-8'))
           #ID exists now, safe to get
-          await channel.send(discord.Embed(title=author_name, description=' has {0}'.format(redis_server.get('id_'+author_id).decode('utf-8'))))
-
-      #Attempts to check using username
-      user_prob_id = redis_server.hvals(params)[0]
-      if user_prob_id != '':
-        #search if exists using user_prob_id
-        if redis_server.exists(user_prob_id) == 1:
-          #finally search
-          await channel.send(discord.Embed(title=client.user.get, description=' has {0}'.format(redis_server.get(author_id).decode('utf-8'))))
+          await channel.send(embed=discord.Embed(title='', description='**'+author_name+'**'+' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8'))))
+      
+      elif redis_server.exists('id.'+params):
+          await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(params)))+'**'+' has {0}'.format(redis_server.get('id.'+params).decode('utf-8'))))
 
       else:
-        await channel.send(discord.Embed(title = author_name))
+        #Attempts to check using username
+        try:
+          user_prob_id = str(redis_server.hvals('name.'+params)[0].decode('utf-8'))
+        except IndexError:
+          user_prob_id = ''
+        if user_prob_id != '':
+          print(user_prob_id)
+          #get, since we know it exists because names were saved in init of user into cur db.
+          await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_prob_id).decode('utf-8'))))
+          
+        else:
+          await channel.send(embed=discord.Embed(title=author_name, description='{0} not Found.'.format(str(params))))
+
+        
 client.run(os.getenv('bot_token'))
