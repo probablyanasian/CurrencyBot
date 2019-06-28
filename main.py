@@ -4,6 +4,7 @@ import os
 import asyncio
 import time
 import secrets
+import default_shop
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -43,6 +44,7 @@ def change_currency():
 def default_all():
   change_prefix()
   change_currency()
+  reset_store()
   redis_server.set('last.drop', '0'.encode('utf-8'))
 
 #Add to the currency database, and lookup database
@@ -84,7 +86,9 @@ def ident_to_id(ident):
           return(None)
   return(None)
 
-default_all()
+def reset_store():
+  for item in default_shop.defaults:
+    redis_server.hset('current.shop', item, default_shop.defaults[item])
 
 @client.event
 async def on_ready():
@@ -99,10 +103,12 @@ async def on_message(message):
   if message.content == '.getprefix':
     await message.channel.send(embed=discord.Embed(title=str(message.author), description="Current prefix is {0}".format(redis_server.get('current.prefix').decode('utf-8'))))
 
+  if str(message.author.id) in os.getenv('owner_id'):
+    if message.content == 'cur_bot_reset_all'
+      default_all()
   #check for prefix first
   if message.content.startswith(prefix_char):
     uinput = str(message.content).split(" ", 1)
-
     command = uinput[0].strip(prefix_char)
 
     #try to isolate params, may be NULL
