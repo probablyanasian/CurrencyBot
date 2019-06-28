@@ -105,7 +105,7 @@ async def on_message(message):
         #check if ID exists
         if redis_server.exists('id.'+author_id):
           #search using it
-          await channel.send(embed=discord.Embed(title='', description= '**'+author_name+'**'+ ' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8'))))
+          await channel.send(embed=discord.Embed(title='', description= '**'+author_name+'**'+ ' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8')), color=39270))
         #ID doesn't exist
         else:
           #Sets the author's amount to zero
@@ -113,11 +113,11 @@ async def on_message(message):
           #Creates a hash table with Username -> user_discrim -> user_ID, for username searching
           redis_server.hset('name.'+author_uname_only, author_discrim, author_id.encode('utf-8'))
           #ID exists now, safe to get
-          await channel.send(embed=discord.Embed(title='', description='**'+author_name+'**'+' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8'))))
+          await channel.send(embed=discord.Embed(title='', description='**'+author_name+'**'+' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8')), color=39270))
       
       #Search using ID
       elif redis_server.exists('id.'+params):
-        await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(params)))+'**'+' has {0}'.format(redis_server.get('id.'+params).decode('utf-8'))))
+        await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(params)))+'**'+' has {0}'.format(redis_server.get('id.'+params).decode('utf-8')), color=39270))
       
       #Check using username
       else:
@@ -128,10 +128,10 @@ async def on_message(message):
           #Search came back with results
           if user_prob_id != None:
             user_id = str(user_prob_id.decode('utf-8'))
-            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_id).decode('utf-8'))))
+            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_id).decode('utf-8')), color=39270))
           #Fail on attempts
           else:
-            await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params))))
+            await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params)), color=16724787))
 
         #Attempts to check using username
         else:
@@ -143,11 +143,11 @@ async def on_message(message):
           if user_prob_id != '':
             print(user_prob_id)
             #get, since we know it exists because names were saved in init of user into cur db.
-            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_prob_id).decode('utf-8'))))
+            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_prob_id).decode('utf-8')), color=39270))
 
           #Fail on attempts
           else:
-            await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params))))
+            await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params)), color=16724787))
 
         
 client.run(os.getenv('bot_token'))
