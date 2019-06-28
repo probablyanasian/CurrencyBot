@@ -4,11 +4,13 @@
 
 ### Starting:
     
--You'll need the following packages: 'discord.py', 'asyncio', 'dotenv', 'redis'
+- You'll need the following packages: 'discord.py', 'asyncio', 'dotenv', 'redis'
 
--You'll also need to set up [redis](https://redis.io/download)
+- You'll also need to set up [redis](https://redis.io/download)
 
--Just run `python3 main.py` and it should be up and running!
+- Just run `python3 main.py` and it should be up and running!
+
+- After that, type in a chat where the bot can see `cur_bot_reset_all` to reset the database to original
     
 ## Commands:
 
@@ -30,6 +32,8 @@ award [value] [user]: 2 parameters; Gives the specified [user] [value] money.
 changeprefix [newprefix]: 1 parameter; Changes to prefix to [newprefix]
 
 changecurrency [newcurrency]: 1 parameter; Changes to currency to [newcurrency]
+
+cur_bot_reset_all: no prefix; resets all db's to default
 ```
 
 ### In debug mode:
@@ -38,6 +42,11 @@ changecurrency [newcurrency]: 1 parameter; Changes to currency to [newcurrency]
 teststore [key] [value]: 2 parameters; Tries to store a key-value pair into the Redis DB.
 ```
 
-*To Discord person: If you guys have internships available, in the summer hopefully, please let me know.*
+## Created by:
+- Probably an Asian#0508 (Programming)
+- perhapsacat#0348 (Art, kept programmer sane)
+
+
+*To Discord judge/evaluator: If you guys have internships available, in the summer hopefully, please let me know.*
 
 *I'm pretty close to Discord HQ* -Probably an Asian#0508

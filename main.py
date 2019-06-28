@@ -30,6 +30,9 @@ def change_prefix():
     redis_server.set('current.prefix', '.')
     prefix_char = redis_server.get('current.prefix').decode('utf-8')
 
+#Need to run to init every startup.
+change_prefix()
+
 #Change the currency name
 def change_currency():
   global currency_type
@@ -39,6 +42,9 @@ def change_currency():
   else: 
     redis_server.set('current.currency', 'dollars')
     currency_type = redis_server.get('current.currency').decode('utf-8')
+
+#Need to run to init every startup.
+change_currency()
 
 #sets db to default values
 def default_all():
@@ -125,65 +131,8 @@ async def on_message(message):
     #discriminator str(message.author.discriminator)
     #author id str(message.author.id)
 
-    #Test commands, test response
-    if debug:
-      if command == 'teststore':
-        split_params = params.split(" ", 1)
-        if len(split_params) >= 2:
-          redis_server.set(split_params[0], split_params[1].encode('utf-8'))
-          await channel.send(embed=discord.Embed(title="", description=redis_server.get(split_params[0]).decode('utf-8')))
-        else:
-          embed = discord.Embed(title=str(message.author) + ' Invalid Command', description='Command requires 2 parameters {0} given'.format(len(split_params)))
-          await channel.send(embed=embed)
 
-    #Owner only
-    if str(message.author.id) in os.getenv('owner_id'):
-      if command == 'flushdb':
-        await channel.send(embed=discord.Embed(title="Are you sure? This will delete everything in the DB (Y/n)", color=16724787))
-        
-        def check(message):
-            if str(message.author.id) in os.getenv('owner_id') and str(message.content).lower() == 'n' and message.channel == channel:
-              raise asyncio.TimeoutError
-            return str(message.author.id) in os.getenv('owner_id') and str(message.content).lower() == 'y' and message.channel == channel
-        try:
-          msg = await client.wait_for('message', timeout=15.0, check=check)
-        except asyncio.TimeoutError:
-          await channel.send(embed=discord.Embed(title="FlushDB canceled."))
-        else:
-          redis_server.flushdb()
-          await channel.send(embed=discord.Embed(title="Current database flushed, prefix reset to '.'"))
-          default_all()
-       
-      if command == 'changeprefix':
-        redis_server.set('current.prefix', params)
-        change_prefix()
-        await channel.send(embed=discord.Embed(title=str(message.author), description='Prefix changed to {0}'.format(params)))
 
-      if command == 'changecurrency':
-        redis_server.set('current.currency', params)
-        change_currency()
-        await channel.send(embed=discord.Embed(title=str(message.author), description='Currency changed to {0}'.format(params)))
-
-      if command == 'award':
-        split_params = params.split(' ', 1)
-        try:
-          add_value = int(split_params[0])
-        except ValueError:
-          await channel.send(embed=discord.Embed(title=str(message.author), description='Award amount is not a number.'))
-          return
-        try:
-          supposed_id = ident_to_id(split_params[1])
-        except IndexError:
-          await channel.send(embed=discord.Embed(title=str(message.author), description='Requires 2 parameters'))
-        if supposed_id != None:
-          cur_bal = int(redis_server.get('id.'+supposed_id).decode('utf-8'))
-          redis_server.set('id.'+supposed_id, str(cur_bal+add_value).encode('utf-8'))
-          await channel.send(embed=discord.Embed(title=str(message.author), description=str(client.get_user(int(supposed_id)))+' recieved {0} {1}'.format(add_value, currency_type)))
-        else: 
-          await channel.send(embed=discord.Embed(title=str(message.author), description='Recipient is not in the DB'))
-
-          
-  
     #Currency command
     if command in ['$', 'cur', 'currency']:
 
@@ -228,7 +177,7 @@ async def on_message(message):
             #Fail on attempts
             await channel.send(embed=discord.Embed(title=str(message.author), description='{0} not found.'.format(str(params)), color=16724787))
 
-    if command == 'pick':
+    elif command == 'pick':
       #If not already in db, add them
       add_to_cur(str(message.author.id), str(message.author).rsplit("#", 1)[0], str(message.author.discriminator))
       #Temporary total var
@@ -249,14 +198,101 @@ async def on_message(message):
       #Need to check how to delete a message in discord.py 
       #await channel.delete_messages(int(redis_server.hkeys('drop.'+str(channel.id)))) TODO Fix if extra time
     
-    #Store command
-    if command in ['shop','store']:
-      redis_server.hgetall('current.shop')
-  
+    #Store commands
+    elif command in ['generalstore', 'gifts']:  #TODO finish.
+      cur_shop = redis_server.hgetall('current.shop')
+      
+    elif command in ['shop', 'store']:
+      cur_shop = redis_server.hgetall('custom.shop')
+      shop_items = list(cur_shop)
+      item_count = len(shop_items)
+      embed=discord.Embed(title='Shop', color=0xff15e6)
+      for iter in range(item_count):
+        embed.add_field(name=shop_items[iter].decode('utf-8'), value=cur_shop[shop_items[iter]].decode('utf-8'), inline=True)
+      await channel.send(embed=embed)
+
+    elif command in ['buy', 'buyrole']:
+          if client.permissions_in(channel).manage_roles:
+            pass
+          else: 
+            await 
+
+    elif message.author.permissions_in(channel).manage_roles:
+      if command in ['storeadd', 'shopadd']:
+        split_params = params.rsplit(' ', 1)
+        if len(split_params) == 2:
+          try:
+            if int(split_params[1]) >= 0:
+              redis_server.hset('custom.shop', split_params[0].encode('utf-8'), split_params[1].encode('utf-8'))
+              embed=discord.Embed(title=str(message.author), description='Item {0} added successfully at {1} {2}'.format(split_params[0], split_params[1], currency_type))
+              await channel.send(embed=embed)
+          except ValueError:
+            await channel.send(embed=discord.Embed(title=str(message.author), description='Second parameter should be a number'))
+        else:
+          await channel.send(embed=discord.Embed(title=str(message.author), description='Requires 2 parameters'))
+
+    #Test commands, test response
+    if debug:
+      if command == 'teststore':
+        split_params = params.split(" ", 1)
+        if len(split_params) >= 2:
+          redis_server.set(split_params[0], split_params[1].encode('utf-8'))
+          await channel.send(embed=discord.Embed(title="", description=redis_server.get(split_params[0]).decode('utf-8')))
+        else:
+          embed = discord.Embed(title=str(message.author) + ' Invalid Command', description='Command requires 2 parameters {0} given'.format(len(split_params)))
+          await channel.send(embed=embed)
+
+
+    #Owner only
+    if str(message.author.id) in os.getenv('owner_id'):
+      if command == 'flushdb':
+        await channel.send(embed=discord.Embed(title="Are you sure? This will delete everything in the DB (Y/n)", color=16724787))
+        
+        def check(message):
+            if str(message.author.id) in os.getenv('owner_id') and str(message.content).lower() == 'n' and message.channel == channel:
+              raise asyncio.TimeoutError
+            return str(message.author.id) in os.getenv('owner_id') and str(message.content).lower() == 'y' and message.channel == channel
+        try:
+          msg = await client.wait_for('message', timeout=15.0, check=check)
+        except asyncio.TimeoutError:
+          await channel.send(embed=discord.Embed(title="FlushDB canceled."))
+        else:
+          redis_server.flushdb()
+          await channel.send(embed=discord.Embed(title="Current database flushed, prefix reset to '.'"))
+          default_all()
+       
+      elif command == 'changeprefix':
+        redis_server.set('current.prefix', params)
+        change_prefix()
+        await channel.send(embed=discord.Embed(title=str(message.author), description='Prefix changed to {0}'.format(params)))
+
+      elif command == 'changecurrency':
+        redis_server.set('current.currency', params)
+        change_currency()
+        await channel.send(embed=discord.Embed(title=str(message.author), description='Currency changed to {0}'.format(params)))
+
+      elif command == 'award':
+        split_params = params.split(' ', 1)
+        try:
+          add_value = int(split_params[0])
+        except ValueError:
+          await channel.send(embed=discord.Embed(title=str(message.author), description='Award amount is not a number.'))
+          return
+        try:
+          supposed_id = ident_to_id(split_params[1])
+        except IndexError:
+          await channel.send(embed=discord.Embed(title=str(message.author), description='Requires 2 parameters'))
+        if supposed_id != None:
+          cur_bal = int(redis_server.get('id.'+supposed_id).decode('utf-8'))
+          redis_server.set('id.'+supposed_id, str(cur_bal+add_value).encode('utf-8'))
+          await channel.send(embed=discord.Embed(title=str(message.author), description=str(client.get_user(int(supposed_id)))+' recieved {0} {1}'.format(add_value, currency_type)))
+        else: 
+          await channel.send(embed=discord.Embed(title=str(message.author), description='Recipient is not in the DB'))
+    
   #On a noncommand, every 3 minutes
   elif (round((time.time()), None) - int(redis_server.get('last.drop').decode('utf-8'))) > 180:
     #2 percent chance
-    if secrets.randbelow(1000) > 980:
+    if secrets.randbelow(1000) < 20:
       #Random drop between 0 and 199
       value = secrets.randbelow(200)
       #Shows that there was money dropped
