@@ -74,7 +74,7 @@ async def on_message(message):
           embed = discord.Embed(title=author_name + ' Invalid Command', description='Command requires 2 parameters {0} given'.format(len(split_params)))
           await channel.send(embed=embed)
 
-
+    #Owner only
     if author_id in os.getenv('owner_id'):
       if command == 'flushdb':
         await channel.send(embed=discord.Embed(title="Are you sure? This will delete everything in the DB (Y/n)", color=16724787))
@@ -97,12 +97,10 @@ async def on_message(message):
         change_prefix()
         await channel.send(embed=discord.Embed(title=author_name, description='Prefix changed to {0}'.format(params)))
 
-
+    #Currency command
     if command in ['$', 'cur', 'currency']:
-      if '#' in params:
-        split_params = params.split('#', 1)
 
-      #No parameters, use ID to search  
+      #No parameters, use author.ID to search  
       if params == "":
         #check if ID exists
         if redis_server.exists('id.'+author_id):
@@ -117,22 +115,39 @@ async def on_message(message):
           #ID exists now, safe to get
           await channel.send(embed=discord.Embed(title='', description='**'+author_name+'**'+' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8'))))
       
+      #Search using ID
       elif redis_server.exists('id.'+params):
-          await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(params)))+'**'+' has {0}'.format(redis_server.get('id.'+params).decode('utf-8'))))
-
+        await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(params)))+'**'+' has {0}'.format(redis_server.get('id.'+params).decode('utf-8'))))
+      
+      #Check using username
       else:
+        if '#' in params:
+          split_params = params.split('#', 1)
+          #hget, because it'll return nil if empty anyways
+          user_prob_id = redis_server.hget('name.'+str(split_params[0]), split_params[1])
+          #Search came back with results
+          if user_prob_id != None:
+            user_id = str(user_prob_id.decode('utf-8'))
+            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_id).decode('utf-8'))))
+          #Fail on attempts
+          else:
+            await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params))))
+
         #Attempts to check using username
-        try:
-          user_prob_id = str(redis_server.hvals('name.'+params)[0].decode('utf-8'))
-        except IndexError:
-          user_prob_id = ''
-        if user_prob_id != '':
-          print(user_prob_id)
-          #get, since we know it exists because names were saved in init of user into cur db.
-          await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_prob_id).decode('utf-8'))))
-          
         else:
-          await channel.send(embed=discord.Embed(title=author_name, description='{0} not Found.'.format(str(params))))
+          
+          try:
+            user_prob_id = str(redis_server.hvals('name.'+params)[0].decode('utf-8'))
+          except IndexError:
+            user_prob_id = ''
+          if user_prob_id != '':
+            print(user_prob_id)
+            #get, since we know it exists because names were saved in init of user into cur db.
+            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_prob_id).decode('utf-8'))))
+
+          #Fail on attempts
+          else:
+            await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params))))
 
         
 client.run(os.getenv('bot_token'))
