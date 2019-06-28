@@ -42,6 +42,15 @@ def default_all():
   change_currency()
   redis_server.set('last.drop', '0'.encode('utf-8'))
 
+def add_to_cur(author_id, author_uname, author_discrim):
+  if redis_server.exists('id.'+author_id):
+    return
+  else:
+    #Sets the author's amount to 100, to start off with
+    redis_server.set('id.'+author_id, '100'.encode('utf-8'))
+    #Creates a hash table with Username -> user_discrim -> user_ID, for username searching
+    redis_server.hset('name.'+author_uname, author_discrim, author_id.encode('utf-8'))
+
 default_all()
 
 @client.event
@@ -106,7 +115,7 @@ async def on_message(message):
         else:
           redis_server.flushdb()
           await channel.send(embed=discord.Embed(title="Current database flushed, prefix reset to '.'"))
-          change_prefix()
+          default_all()
        
       if command == 'changeprefix':
         redis_server.set('current.prefix', params)
@@ -129,11 +138,8 @@ async def on_message(message):
           await channel.send(embed=discord.Embed(title='', description= '**'+author_name+'**'+ ' has {0} {1}'.format(redis_server.get('id.'+author_id).decode('utf-8'), currency_type), color=39270))
         #ID doesn't exist
         else:
-          #Sets the author's amount to zero
-          redis_server.set('id.'+author_id, '0'.encode('utf-8'))
-          #Creates a hash table with Username -> user_discrim -> user_ID, for username searching
-          redis_server.hset('name.'+author_uname_only, author_discrim, author_id.encode('utf-8'))
-          #ID exists now, safe to get
+          #Since ID doesn't exist yet, add it.
+          add_to_cur(author_id, author_uname_only, author_discrim)
           await channel.send(embed=discord.Embed(title='', description='**'+author_name+'**'+' has {0} {1}'.format(redis_server.get('id.'+author_id).decode('utf-8'), currency_type), color=39270))
       
       #Search using ID
@@ -171,11 +177,42 @@ async def on_message(message):
             await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params)), color=16724787))
 
     if command == 'pick':
-      
-      
+      #If not already in db, add them
+      add_to_cur(author_id, author_uname_only, author_discrim)
+      #Temporary total var
+      total_picked = 0
+      #Loops through all the missed drops
+      for message_id in redis_server.hkeys('drop.'+str(channel.id)):
+        #Adds up the total
+        total_picked += int(redis_server.hget('drop.'+str(channel.id), message_id))
+        #Delete after "picked"
+        redis_server.hdel('drop.'+str(channel.id), message_id)
+      #Add to author's account
+      cur_author_bal = int(redis_server.get('id.'+author_id).decode('utf-8'))
+      cur_author_bal += total_picked
+      redis_server.set('id.'+author_id, str(cur_author_bal).encode('utf-8'))
+      #Send message with who, and value picked up
+      await message.channel.send(embed=discord.Embed(title='', description='**{0}** picked up {1} {2}'.format(author_uname_only, str(total_picked), currency_type)))
+
+      #Need to check how to delete a message in discord.py 
+      #await channel.delete_messages(int(redis_server.hkeys('drop.'+str(channel.id)))) TODO Fix if extra time
+    
     #Store command
     if command in ['shop','store']:
       redis_server.hgetall('current.shop')
+  
+  #On a noncommand, every 3 minutes
+  elif (round((time.time()), None) - int(redis_server.get('last.drop').decode('utf-8'))) > 180:
+    #2 percent chance
+    if secrets.randbelow(1000) < 20:
+      #Random drop between 0 and 199
+      value = secrets.randbelow(200)
+      #Shows that there was money dropped
+      await message.channel.send(embed=discord.Embed(title='{0} {1} were dropped'.format(str(value), currency_type)))
+      #Logs the drop so it can be picked later
+      redis_server.hset('drop.'+str(message.channel.id), str(message.id).encode('utf-8'), str(value).encode('utf-8'))
+      #Resets the last drop time
+      redis_server.set('last.drop', str(round(time.time(), None)).encode('utf-8'))
 
         
 client.run(os.getenv('bot_token'))
