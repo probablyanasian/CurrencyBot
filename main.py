@@ -19,6 +19,7 @@ redis_server = redis.Redis(
 
 client = discord.Client()
 
+#Change the bot's prefix, currently only global prefix.
 def change_prefix():
   global prefix_char
   if redis_server.exists('current.prefix'):
@@ -28,6 +29,7 @@ def change_prefix():
     redis_server.set('current.prefix', '.')
     prefix_char = redis_server.get('current.prefix').decode('utf-8')
 
+#Change the currency name
 def change_currency():
   global currency_type
   if redis_server.exists('current.currency'):
@@ -37,11 +39,13 @@ def change_currency():
     redis_server.set('current.currency', 'dollars')
     currency_type = redis_server.get('current.currency').decode('utf-8')
 
+#sets db to default values
 def default_all():
   change_prefix()
   change_currency()
   redis_server.set('last.drop', '0'.encode('utf-8'))
 
+#Add to the currency database, and lookup database
 def add_to_cur(author_id, author_uname, author_discrim):
   if redis_server.exists('id.'+author_id):
     return
@@ -50,6 +54,35 @@ def add_to_cur(author_id, author_uname, author_discrim):
     redis_server.set('id.'+author_id, '100'.encode('utf-8'))
     #Creates a hash table with Username -> user_discrim -> user_ID, for username searching
     redis_server.hset('name.'+author_uname, author_discrim, author_id.encode('utf-8'))
+
+#identifiable to user
+def ident_to_id(ident):
+  #Search using ID
+  if redis_server.exists('id.'+ident):
+    return(ident)
+    
+  #Attempts to check using username
+  else:
+    user_prob_id = redis_server.hvals('name.'+ident)
+    if user_prob_id != []:
+      user_id = str(user_prob_id[0].decode('utf-8'))
+      #return id, since we know it exists because names were saved in init of user into cur db.
+      return(user_id)
+
+        #Fail on attempts
+    else:
+      if '#' in ident:
+        split_params = ident.rsplit('#', 1)
+        #hget, because it'll return nil if empty anyways
+        user_prob_id = redis_server.hget('name.'+str(split_params[0]), split_params[1])
+        #Search came back with results
+        if user_prob_id != None:
+          user_id = str(user_prob_id.decode('utf-8'))
+          return(user_id)
+        else:
+          #Fail on attempts
+          return(None)
+  return(None)
 
 default_all()
 
@@ -81,12 +114,10 @@ async def on_message(message):
     channel = message.channel
 
     #Author details
-    author_name = str(message.author)
-
-    #using this method to ensure no discrim
-    author_uname_only = author_name.split("#", 1)[0]
-    author_discrim = str(message.author.discriminator)
-    author_id = str(message.author.id)
+    #author name str(message.author)
+    #uname only str(message.author).rsplit("#", 1)[0]
+    #discriminator str(message.author.discriminator)
+    #author id str(message.author.id)
 
     #Test commands, test response
     if debug:
@@ -96,11 +127,11 @@ async def on_message(message):
           redis_server.set(split_params[0], split_params[1].encode('utf-8'))
           await channel.send(embed=discord.Embed(title="", description=redis_server.get(split_params[0]).decode('utf-8')))
         else:
-          embed = discord.Embed(title=author_name + ' Invalid Command', description='Command requires 2 parameters {0} given'.format(len(split_params)))
+          embed = discord.Embed(title=str(message.author) + ' Invalid Command', description='Command requires 2 parameters {0} given'.format(len(split_params)))
           await channel.send(embed=embed)
 
     #Owner only
-    if author_id in os.getenv('owner_id'):
+    if str(message.author.id) in os.getenv('owner_id'):
       if command == 'flushdb':
         await channel.send(embed=discord.Embed(title="Are you sure? This will delete everything in the DB (Y/n)", color=16724787))
         
@@ -120,65 +151,80 @@ async def on_message(message):
       if command == 'changeprefix':
         redis_server.set('current.prefix', params)
         change_prefix()
-        await channel.send(embed=discord.Embed(title=author_name, description='Prefix changed to {0}'.format(params)))
+        await channel.send(embed=discord.Embed(title=str(message.author), description='Prefix changed to {0}'.format(params)))
 
       if command == 'changecurrency':
         redis_server.set('current.currency', params)
         change_currency()
-        await channel.send(embed=discord.Embed(title=author_name, description='Currency changed to {0}'.format(params)))
+        await channel.send(embed=discord.Embed(title=str(message.author), description='Currency changed to {0}'.format(params)))
 
+      if command == 'award':
+        split_params = params.split(' ', 1)
+        try:
+          add_value = int(split_params[0])
+        except ValueError:
+          await channel.send(embed=discord.Embed(title=str(message.author), description='Award amount is not a number.'))
+          return
+        try:
+          supposed_id = ident_to_id(split_params[1])
+        except IndexError:
+          await channel.send(embed=discord.Embed(title=str(message.author), description='Requires 2 parameters'))
+        if supposed_id != None:
+          cur_bal = int(redis_server.get('id.'+supposed_id).decode('utf-8'))
+          redis_server.set('id.'+supposed_id, str(cur_bal+add_value).encode('utf-8'))
+          await channel.send(embed=discord.Embed(title=str(message.author), description=str(client.get_user(int(supposed_id)))+' recieved {0} {1}'.format(add_value, currency_type)))
+        else: 
+          await channel.send(embed=discord.Embed(title=str(message.author), description='Recipient is not in the DB'))
+
+          
+  
     #Currency command
     if command in ['$', 'cur', 'currency']:
 
       #No parameters, use author.ID to search  
       if params == "":
         #check if ID exists
-        if redis_server.exists('id.'+author_id):
+        if redis_server.exists('id.'+str(message.author.id)):
           #search using it
-          await channel.send(embed=discord.Embed(title='', description= '**'+author_name+'**'+ ' has {0} {1}'.format(redis_server.get('id.'+author_id).decode('utf-8'), currency_type), color=39270))
+          await channel.send(embed=discord.Embed(title='', description= '**'+str(message.author)+'**'+ ' has {0} {1}'.format(redis_server.get('id.'+str(message.author.id)).decode('utf-8'), currency_type), color=39270))
         #ID doesn't exist
         else:
           #Since ID doesn't exist yet, add it.
-          add_to_cur(author_id, author_uname_only, author_discrim)
-          await channel.send(embed=discord.Embed(title='', description='**'+author_name+'**'+' has {0} {1}'.format(redis_server.get('id.'+author_id).decode('utf-8'), currency_type), color=39270))
+          add_to_cur(str(message.author.id), str(message.author).rsplit("#", 1)[0], str(message.author.discriminator))
+          await channel.send(embed=discord.Embed(title='', description='**'+str(message.author)+'**'+' has {0} {1}'.format(redis_server.get('id.'+str(message.author.id)).decode('utf-8'), currency_type), color=39270))
       
       #Search using ID
       elif redis_server.exists('id.'+params):
         await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(params)))+'**'+' has {0} {1}'.format(redis_server.get('id.'+params).decode('utf-8'), currency_type), color=39270))
-      
-      #Check using username
+        
+      #Attempts to check using username
       else:
-        if '#' in params:
-          split_params = params.split('#', 1)
-          #hget, because it'll return nil if empty anyways
-          user_prob_id = redis_server.hget('name.'+str(split_params[0]), split_params[1])
-          #Search came back with results
-          if user_prob_id != None:
-            user_id = str(user_prob_id.decode('utf-8'))
-            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0} {1}'.format(redis_server.get('id.'+user_id).decode('utf-8'), currency_type), color=39270))
-          #Fail on attempts
-          else:
-            await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params)), color=16724787))
+        user_prob_id = redis_server.hvals('name.'+params)
+        if user_prob_id != []:
+          user_id = str(user_prob_id[0].decode('utf-8'))
+          #get, since we know it exists because names were saved in init of user into cur db.
+          await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_id)))+'**'+' has {0} {1}'.format(redis_server.get('id.'+user_id).decode('utf-8'), currency_type), color=39270))
 
-        #Attempts to check using username
+            #Fail on attempts
         else:
-          
-          try:
-            user_prob_id = str(redis_server.hvals('name.'+params)[0].decode('utf-8'))
-          except IndexError:
-            user_prob_id = ''
-          if user_prob_id != '':
-            print(user_prob_id)
-            #get, since we know it exists because names were saved in init of user into cur db.
-            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0} {1}'.format(redis_server.get('id.'+user_prob_id).decode('utf-8'), currency_type), color=39270))
-
-          #Fail on attempts
+          if '#' in params:
+            split_params = params.split('#', 1)
+            #hget, because it'll return nil if empty anyways
+            user_prob_id = redis_server.hget('name.'+str(split_params[0]), split_params[1])
+            #Search came back with results
+            if user_prob_id != None:
+              user_id = str(user_prob_id.decode('utf-8'))
+              await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0} {1}'.format(redis_server.get('id.'+user_id).decode('utf-8'), currency_type), color=39270))
+            else:
+              #Fail on attempts
+              await channel.send(embed=discord.Embed(title=str(message.author), description='{0} not found.'.format(str(params)), color=16724787))
           else:
-            await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params)), color=16724787))
+            #Fail on attempts
+            await channel.send(embed=discord.Embed(title=str(message.author), description='{0} not found.'.format(str(params)), color=16724787))
 
     if command == 'pick':
       #If not already in db, add them
-      add_to_cur(author_id, author_uname_only, author_discrim)
+      add_to_cur(str(message.author.id), str(message.author).rsplit("#", 1)[0], str(message.author.discriminator))
       #Temporary total var
       total_picked = 0
       #Loops through all the missed drops
@@ -188,11 +234,11 @@ async def on_message(message):
         #Delete after "picked"
         redis_server.hdel('drop.'+str(channel.id), message_id)
       #Add to author's account
-      cur_author_bal = int(redis_server.get('id.'+author_id).decode('utf-8'))
+      cur_author_bal = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
       cur_author_bal += total_picked
-      redis_server.set('id.'+author_id, str(cur_author_bal).encode('utf-8'))
+      redis_server.set('id.'+str(message.author.id), str(cur_author_bal).encode('utf-8'))
       #Send message with who, and value picked up
-      await message.channel.send(embed=discord.Embed(title='', description='**{0}** picked up {1} {2}'.format(author_uname_only, str(total_picked), currency_type)))
+      await message.channel.send(embed=discord.Embed(title='', description='**{0}** picked up {1} {2}'.format(str(message.author).rsplit("#", 1)[0], str(total_picked), currency_type)))
 
       #Need to check how to delete a message in discord.py 
       #await channel.delete_messages(int(redis_server.hkeys('drop.'+str(channel.id)))) TODO Fix if extra time
@@ -204,7 +250,7 @@ async def on_message(message):
   #On a noncommand, every 3 minutes
   elif (round((time.time()), None) - int(redis_server.get('last.drop').decode('utf-8'))) > 180:
     #2 percent chance
-    if secrets.randbelow(1000) < 20:
+    if secrets.randbelow(1000) > 980:
       #Random drop between 0 and 199
       value = secrets.randbelow(200)
       #Shows that there was money dropped

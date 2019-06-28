@@ -30,4 +30,4 @@ Commands:
 
 *To Discord person: If you guys have internships available, in the summer hopefully, please let me know.*
 
-*I'm pretty close to Discord HQ*
+*I'm pretty close to Discord HQ* -Probably an Asian#0508
