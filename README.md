@@ -1,5 +1,13 @@
 A discord bot made for Discord Hack Week 2019
 
+Starting:
+    
+    You'll need the following packages: 'discord.py', 'asyncio', 'dotenv', 'redis'
+
+    You'll also need to set up (redis)<https://redis.io/download>
+
+    Just run `python3 main.py` and it should be up and running!
+    
 Commands:
 
     Out of debug mode:

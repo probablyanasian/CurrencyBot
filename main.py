@@ -2,6 +2,8 @@ import discord
 import redis
 import os
 import asyncio
+import time
+import secrets
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -18,19 +20,33 @@ redis_server = redis.Redis(
 client = discord.Client()
 
 def change_prefix():
-  global prefixchar
+  global prefix_char
   if redis_server.exists('current.prefix'):
-    #using previously set prefix
-    prefixchar = redis_server.get('current.prefix').decode('utf-8')
+    #use newly/currently set currency
+    prefix_char = redis_server.get('current.prefix').decode('utf-8')
   else: 
     redis_server.set('current.prefix', '.')
-    prefixchar = redis_server.get('current.prefix').decode('utf-8')
+    prefix_char = redis_server.get('current.prefix').decode('utf-8')
 
-change_prefix()
+def change_currency():
+  global currency_type
+  if redis_server.exists('current.currency'):
+    #use newly/currently set currency 
+    currency_type = redis_server.get('current.currency').decode('utf-8')
+  else: 
+    redis_server.set('current.currency', 'dollars')
+    currency_type = redis_server.get('current.currency').decode('utf-8')
+
+def default_all():
+  change_prefix()
+  change_currency()
+  redis_server.set('last.drop', '0'.encode('utf-8'))
+
+default_all()
 
 @client.event
 async def on_ready():
-  print('Logged in as {0.user}, with prefix {1}'.format(client,prefixchar))
+  print('Logged in as {0.user}, with prefix {1}'.format(client,prefix_char))
 
 @client.event
 async def on_message(message):
@@ -42,10 +58,10 @@ async def on_message(message):
     await message.channel.send(embed=discord.Embed(title=str(message.author), description="Current prefix is {0}".format(redis_server.get('current.prefix').decode('utf-8'))))
 
   #check for prefix first
-  if message.content.startswith(prefixchar):
+  if message.content.startswith(prefix_char):
     uinput = str(message.content).split(" ", 1)
 
-    command = uinput[0].strip(prefixchar)
+    command = uinput[0].strip(prefix_char)
 
     #try to isolate params, may be NULL
     try:
@@ -97,6 +113,11 @@ async def on_message(message):
         change_prefix()
         await channel.send(embed=discord.Embed(title=author_name, description='Prefix changed to {0}'.format(params)))
 
+      if command == 'changecurrency':
+        redis_server.set('current.currency', params)
+        change_currency()
+        await channel.send(embed=discord.Embed(title=author_name, description='Currency changed to {0}'.format(params)))
+
     #Currency command
     if command in ['$', 'cur', 'currency']:
 
@@ -105,7 +126,7 @@ async def on_message(message):
         #check if ID exists
         if redis_server.exists('id.'+author_id):
           #search using it
-          await channel.send(embed=discord.Embed(title='', description= '**'+author_name+'**'+ ' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8')), color=39270))
+          await channel.send(embed=discord.Embed(title='', description= '**'+author_name+'**'+ ' has {0} {1}'.format(redis_server.get('id.'+author_id).decode('utf-8'), currency_type), color=39270))
         #ID doesn't exist
         else:
           #Sets the author's amount to zero
@@ -113,11 +134,11 @@ async def on_message(message):
           #Creates a hash table with Username -> user_discrim -> user_ID, for username searching
           redis_server.hset('name.'+author_uname_only, author_discrim, author_id.encode('utf-8'))
           #ID exists now, safe to get
-          await channel.send(embed=discord.Embed(title='', description='**'+author_name+'**'+' has {0}'.format(redis_server.get('id.'+author_id).decode('utf-8')), color=39270))
+          await channel.send(embed=discord.Embed(title='', description='**'+author_name+'**'+' has {0} {1}'.format(redis_server.get('id.'+author_id).decode('utf-8'), currency_type), color=39270))
       
       #Search using ID
       elif redis_server.exists('id.'+params):
-        await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(params)))+'**'+' has {0}'.format(redis_server.get('id.'+params).decode('utf-8')), color=39270))
+        await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(params)))+'**'+' has {0} {1}'.format(redis_server.get('id.'+params).decode('utf-8'), currency_type), color=39270))
       
       #Check using username
       else:
@@ -128,7 +149,7 @@ async def on_message(message):
           #Search came back with results
           if user_prob_id != None:
             user_id = str(user_prob_id.decode('utf-8'))
-            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_id).decode('utf-8')), color=39270))
+            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0} {1}'.format(redis_server.get('id.'+user_id).decode('utf-8'), currency_type), color=39270))
           #Fail on attempts
           else:
             await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params)), color=16724787))
@@ -143,11 +164,18 @@ async def on_message(message):
           if user_prob_id != '':
             print(user_prob_id)
             #get, since we know it exists because names were saved in init of user into cur db.
-            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0}'.format(redis_server.get('id.'+user_prob_id).decode('utf-8')), color=39270))
+            await channel.send(embed=discord.Embed(title='', description='**'+str(client.get_user(int(user_prob_id)))+'**'+' has {0} {1}'.format(redis_server.get('id.'+user_prob_id).decode('utf-8'), currency_type), color=39270))
 
           #Fail on attempts
           else:
             await channel.send(embed=discord.Embed(title=author_name, description='{0} not found.'.format(str(params)), color=16724787))
+
+    if command == 'pick':
+      
+      
+    #Store command
+    if command in ['shop','store']:
+      redis_server.hgetall('current.shop')
 
         
 client.run(os.getenv('bot_token'))
