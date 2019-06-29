@@ -245,7 +245,7 @@ async def on_message(message):
             await channel.send(embed=discord.Embed(title=str(message.author), description='First parameter should be a number'))
         elif split_params[0] in ['roles', 'role']:
           try:
-            if int(split_params[0]) >= 0:
+            if int(split_params[1]) >= 0:
               redis_server.hset('custom.shop.guild.role', split_params[2].encode('utf-8'), split_params[1].encode('utf-8'))
               redis_server.hset('custom.shop.guild', 'roleitem'.encode('utf-8'), split_params[2].encode('utf-8'))
               embed=discord.Embed(title=str(message.author), description='Guild roleitem {0} added successfully at {1} {2}'.format(split_params[2], split_params[1], currency_type))
