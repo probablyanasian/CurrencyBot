@@ -221,7 +221,6 @@ async def on_message(message):
           shop_type = 'House'
       if shop_type != None:
         cur_shop = redis_server.hgetall('custom.shop.'+shop_type)
-        await channel.send(cur_shop)
         shop_items = list(cur_shop)
         item_count = len(shop_items)
         embed=discord.Embed(title=shop_type+' Shop', color=0xff15e6)
@@ -230,12 +229,6 @@ async def on_message(message):
         await channel.send(embed=embed)
       else:
         await channel.send(embed=discord.Embed(title=str(message.author), description='Parameter not understood.'))
-
-    elif command in ['buy', 'buyrole', 'buyhouse', 'buyitem']:
-      try:
-        await channel.send("hasperms")
-      except: 
-        await channel.send("noperms")
 
     elif message.author.permissions_in(channel).manage_roles:
       if command in ['storeadd', 'shopadd']:
