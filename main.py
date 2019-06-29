@@ -201,6 +201,12 @@ async def on_message(message):
       #Need to check how to delete a message in discord.py 
       #await channel.delete_messages(int(redis_server.hkeys('drop.'+str(channel.id)))) TODO Fix if extra time
     
+	
+	#Help command
+	elif command == 'help':
+		embed=discord.Embed(title="Command List", color=0x00ffff)
+		await channel.send(embed=embed)
+		
     #Store commands
     elif command in ['shop', 'store', 'itemshop', 'guildshop', 'shopguild', 'servershop', 'houses', 'house']:
       shop_type = None
