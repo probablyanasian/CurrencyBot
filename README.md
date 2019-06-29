@@ -77,6 +77,6 @@ cur_bot_reset_all:                              no prefix; sets all DBs with a d
 
 #### *To the Discord judge/evaluator: Thank you so much for taking the time to look at our project!*
 
-*P.S. If you guys have internships available, in the summer hopefully, please let me know.*
+*P. S. If you guys have internships available, in the summer hopefully, please let me know.*
 
 *P. P. S. I'm pretty close to Discord HQ* - Probably an Asian#0508
