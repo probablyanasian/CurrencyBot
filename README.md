@@ -53,7 +53,7 @@ Miscellaneous
 
 ### Owner only:
 ```
-flushdb:                                        no parameters; Clears the currently used RedisDB
+.flushdb:                                        no parameters; Clears the currently used RedisDB
 
 .award [value] [user]:                           2 parameters; Gives the specified [user] [value] money.
 
@@ -75,7 +75,7 @@ cur_bot_reset_all:                              no prefix; sets all DBs with a d
 - perhapsacat#0348 (Art, also kept the programmer sane by helping)
 
 
-*To the Discord judge/evaluator: Thank you for taking the time to look at our project!*
+#### *To the Discord judge/evaluator: Thank you so much for taking the time to look at our project!*
 
 *P.S. If you guys have internships available, in the summer hopefully, please let me know.*
 
