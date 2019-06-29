@@ -219,11 +219,10 @@ async def on_message(message):
 	  embed.set_thumbnail(url="https://i.imgur.com/0CO4hLT.png")
 	  embed.add_field(name=, value=Currency Bot supports these commands., inline=True)
 	  
-	  """
 	  #making this more efficient in the future (i can't remember the name right now)
 	  for hcommand in range(len(helpArr)):
 		embed.addfield(name=
-	  """
+	  
 	  embed.add_field(name=CURRENCY, value='', inline=False)
 	  embed.add_field(name=.$, .cur, .currency, value=str(helpCur), inline=False)
 	  embed.add_field(name=.pick, value=str(helpPick), inline=False)
