@@ -16,25 +16,42 @@
 
 ### Out of debug mode:
 ```
-**.cur [none]/[id]/[username]/[username#discrim]**: 0-1 parameter; Gets the current amount of money someone owns <Default: self>
-                                                    AKA: .$, .cur, .currency
+Currency
 
-**.getprefix:** no parameters, works without the prefix as a static command <Default returns: '.'>
+.cur [none]/[id]/[username]/[username#discrim]: 0-1 parameter; Gets the current amount of money someone owns <Default: self>
+                                                AKA: .$, .cur, .currency
+                                                
+.pick:                                          no parameters; Picks up money that's been dropped.
 
-**.pick**: no parameters; picks up money that's been dropped.
+
+Store
+
+.shop, .store, .itemshop:                       no parameters; Shows the item shop.
+
+.shop house, .shop houses, .shop homes:         no parameters; Shows the houses shop.
+
+.shop server, .shop guild, .guildshop,          no parameters; Shows the guild shop.
+.shopguild, .servershop:
+
+
+Miscellaneous
+
+.getprefix:                                     no parameters, Works without the prefix as a static command <Default returns: '.'>
+
+
 ```
 
 ### Owner only:
 ```
-flushdb: no parameters; Clears the currently used RedisDB
+flushdb:                                        no parameters; Clears the currently used RedisDB
 
-award [value] [user]: 2 parameters; Gives the specified [user] [value] money.
+award [value] [user]:                           2 parameters; Gives the specified [user] [value] money.
 
-changeprefix [newprefix]: 1 parameter; Changes to prefix to [newprefix]
+changeprefix [newprefix]:                       1 parameter; Changes to prefix to [newprefix]
 
-changecurrency [newcurrency]: 1 parameter; Changes to currency to [newcurrency]
+changecurrency [newcurrency]:                   1 parameter; Changes to currency to [newcurrency]
 
-cur_bot_reset_all: no prefix; resets all db's to default
+cur_bot_reset_all:                              no prefix; resets all db's to default
 ```
 
 ### In debug mode:
@@ -45,10 +62,10 @@ teststore [key] [value]: 2 parameters; Tries to store a key-value pair into the 
 
 ## Created by:
 - Probably an Asian#0508 (Programming)
-- perhapsacat#0348 (Art, also kept the programmer sane by helping)
+- perhapsacat#0348 (Art, kept the programmer sane)
 
 
-*To the Discord judge/evaluator: Thank you for taking the time to look at our project!*
+*To Discord judge/evaluator: Thank you for taking the time to look at our project!*
 
 *P.S. If you guys have internships available, in the summer hopefully, please let me know.*
 
