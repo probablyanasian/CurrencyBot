@@ -18,13 +18,20 @@
 ```
 Currency
 
-.cur [none]/[id]/[username]/[username#discrim]: 0-1 parameter; Gets the current amount of money someone owns <Default: self>
-                                                AKA: .$, .cur, .currency
+.cur [none]/[id]/[username]/[username#discrim]: 0-1 parameter; Gets the current amount of money someone owns. <Default: self>
+                                                Aliases: .$, .cur, .currency
                                                 
 .pick:                                          no parameters; Picks up money that's been dropped.
 
 
 Store
+
+.buy [item type] [item num] [number of items]:  0-3 parameters; Purchases the specified item. <Default: [item] [idk] [1]>
+                                                <Default Item Types: 
+                                                Guild: 'role', 'guilditem'
+                                                House: 'house', 'houses', 'homes'
+                                                Items: 'items', 'item'>
+                                                Aliases: .buy, .buyhouse, .buyrole
 
 .shop, .store, .itemshop:                       no parameters; Shows the item shop.
 
@@ -51,7 +58,7 @@ changeprefix [newprefix]:                       1 parameter; Changes to prefix t
 
 changecurrency [newcurrency]:                   1 parameter; Changes to currency to [newcurrency]
 
-cur_bot_reset_all:                              no prefix; resets all db's to default
+cur_bot_reset_all:                              no prefix; sets all DBs with a default to their default states
 ```
 
 ### In debug mode:
@@ -62,7 +69,7 @@ teststore [key] [value]: 2 parameters; Tries to store a key-value pair into the 
 
 ## Created by:
 - Probably an Asian#0508 (Programming)
-- perhapsacat#0348 (Art, kept the programmer sane by helping)
+- perhapsacat#0348 (Art, also kept the programmer sane by helping)
 
 
 *To the Discord judge/evaluator: Thank you for taking the time to look at our project!*
