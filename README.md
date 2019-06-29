@@ -44,9 +44,11 @@ teststore [key] [value]: 2 parameters; Tries to store a key-value pair into the 
 
 ## Created by:
 - Probably an Asian#0508 (Programming)
-- perhapsacat#0348 (Art, kept programmer sane)
+- perhapsacat#0348 (Art, kept the programmer sane)
 
 
-*To Discord judge/evaluator: If you guys have internships available, in the summer hopefully, please let me know.*
+*To Discord judge/evaluator: Thank you for taking the time to look at our project!*
 
-*I'm pretty close to Discord HQ* -Probably an Asian#0508
+*P.S. If you guys have internships available, in the summer hopefully, please let me know.*
+
+*P. P. S. I'm pretty close to Discord HQ* - Probably an Asian#0508
