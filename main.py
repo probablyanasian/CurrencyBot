@@ -47,10 +47,10 @@ def change_currency():
 change_currency()
 
 #sets db to default values
-def default_all():
+def default_all(channel):
   change_prefix()
   change_currency()
-  reset_store()
+  reset_store(channel)
   redis_server.set('last.drop', '0'.encode('utf-8'))
 
 #Add to the currency database, and lookup database
@@ -92,13 +92,12 @@ def ident_to_id(ident):
           return(None)
   return(None)
 
-def reset_store():
-  for item in default_shop.defaults:
-    redis_server.hset('current.shop', item, default_shop.defaults[item])
-  for store_type in ['Guild', 'House']:
+def reset_store(channel):
+  for store_type in ['Guild', 'House', 'Item']:
     for single_keys in redis_server.hkeys('custom.shop.'+store_type):
-      redis_server.hdel('custom.shop.'+store_type, single_keys)
-
+      redis_server.hdel('custom.shop.'+str(channel.guild.id)+'.'+store_type, single_keys)
+  for item in default_shop.defaults:
+    redis_server.hset('custom.shop.'+str(channel.guild.id)+'.Item', item, default_shop.defaults[item])
 @client.event
 async def on_ready():
   print('Logged in as {0.user}, with prefix {1}'.format(client,prefix_char))
@@ -114,7 +113,7 @@ async def on_message(message):
 
   if str(message.author.id) in os.getenv('owner_id'):
     if message.content == 'cur_bot_reset_all':
-      default_all()
+      default_all(message.channel)
       await message.channel.send(embed=discord.Embed(title=str(message.author), description="Reset to defaults"))
   
   #check for prefix first
@@ -202,34 +201,45 @@ async def on_message(message):
       #await channel.delete_messages(int(redis_server.hkeys('drop.'+str(channel.id)))) TODO Fix if extra time
     
     #Store commands
-    elif command in ['generalstore', 'gifts']:  #TODO finish.
-      cur_shop = redis_server.hgetall('current.shop')
-      
-    elif command in ['shop', 'store', 'itemshop', 'guildshop', 'shopguild', 'houses', 'house']:
+    elif command in ['shop', 'store', 'itemshop', 'guildshop', 'shopguild', 'servershop', 'houses', 'house']:
       shop_type = None
       params_low = params.lower() 
       if params_low != '':
-        if params_low in ['item', 'guild']:
+        if params_low in ['server', 'guild']:
           shop_type = 'Guild'
         elif params_low in ['house', 'homes', 'houses']:
           shop_type = 'House'
+        elif params_low in ['items', 'item']:
+          shop_type = 'Item'
       else:
-        shop_type = 'Guild'
-        if command in ['guildshop', 'shopguild']:
+        shop_type = 'Item'
+        if command in ['guildshop', 'shopguild', 'servershop']:
           shop_type = 'Guild'
         elif command in ['houses', 'house']:
           shop_type = 'House'
       if shop_type != None:
-        cur_shop = redis_server.hgetall('custom.shop.'+shop_type)
+        cur_shop = redis_server.hgetall('custom.shop.'+str(channel.guild.id)+'.'+shop_type)
         shop_items = list(cur_shop)
         item_count = len(shop_items)
+        #Create embed
         embed=discord.Embed(title=shop_type+' Shop', color=0xff15e6)
         for iter in range(item_count):
-          embed.add_field(name=shop_items[iter].decode('utf-8'), value=cur_shop[shop_items[iter]].decode('utf-8')+' '+currency_type, inline=True)
+          #ensure max of 9 objects, TODO have to paginate
+          if iter <= 8:
+            #add embed items
+            if shop_items[iter].decode('utf-8') == 'roleitem':
+              rolename = message.guild.get_role(int(cur_shop[shop_items[iter]].decode('utf-8'))).name
+              itemcost = redis_server.hget('custom.shop.'+str(channel.guild.id)+'.Guild.role', int(cur_shop[shop_items[iter]])).decode('utf-8')
+              embed.add_field(name=str(rolename)+' Role', value=str(itemcost)+' '+currency_type, inline=True)
+            else:
+              embed.add_field(name=' '.join(shop_items[iter].decode('utf-8').capitalize().split('_')), value=cur_shop[shop_items[iter]].decode('utf-8')+' '+currency_type, inline=True)
+        #send
         await channel.send(embed=embed)
       else:
+        #if params are weird
         await channel.send(embed=discord.Embed(title=str(message.author), description='Parameter not understood.'))
 
+    #Add items to store namely role items
     elif message.author.permissions_in(channel).manage_roles:
       if command in ['storeadd', 'shopadd']:
         split_params = params.split(' ', 2) #type cost name
@@ -238,7 +248,7 @@ async def on_message(message):
             split_params.pop(0) #Delete the item "item_type"
           try:
             if int(split_params[0]) >= 0:
-              redis_server.hset('custom.shop.Guild', split_params[1].encode('utf-8'), split_params[0].encode('utf-8'))
+              redis_server.hset('custom.shop.'+str(channel.guild.id)+'.Guild', split_params[1].encode('utf-8'), split_params[0].encode('utf-8'))
               embed=discord.Embed(title=str(message.author), description='Guild item {0} added successfully at {1} {2}'.format(split_params[1], split_params[0], currency_type))
               await channel.send(embed=embed)
           except ValueError:
@@ -246,12 +256,16 @@ async def on_message(message):
         elif split_params[0] in ['roles', 'role']:
           try:
             if int(split_params[1]) >= 0:
-              redis_server.hset('custom.shop.guild.role', split_params[2].encode('utf-8'), split_params[1].encode('utf-8'))
-              redis_server.hset('custom.shop.guild', 'roleitem'.encode('utf-8'), split_params[2].encode('utf-8'))
-              embed=discord.Embed(title=str(message.author), description='Guild roleitem {0} added successfully at {1} {2}'.format(split_params[2], split_params[1], currency_type))
-              await channel.send(embed=embed)
+              role_id = int("".join(filter(lambda char: char not in "<&@>", split_params[2])))
+              if message.guild.get_role(role_id).id != None:
+                redis_server.hset('custom.shop.'+str(channel.guild.id)+'.Guild.role', role_id, split_params[1].encode('utf-8'))
+                redis_server.hset('custom.shop.'+str(channel.guild.id)+'.Guild', 'roleitem'.encode('utf-8'), role_id)
+                embed=discord.Embed(title=str(message.author), description='Guild roleitem {0} added successfully at {1} {2}'.format(split_params[2], split_params[1], currency_type))
+                await channel.send(embed=embed)
+              else:
+                await channel.send(embed=discord.Embed(title=str(message.author), description='Role not found'))
           except ValueError:
-            await channel.send(embed=discord.Embed(title=str(message.author), description='Second parameter should be a number'))
+            await channel.send(embed=discord.Embed(title=str(message.author), description='Incorrect Parameters'))
         else:  
           await channel.send(embed=discord.Embed(title=str(message.author), description='Requires 2-3 parameters'))
 
@@ -283,7 +297,7 @@ async def on_message(message):
         else:
           redis_server.flushdb()
           await channel.send(embed=discord.Embed(title="Current database flushed, prefix reset to '.'"))
-          default_all()
+          default_all(message.channel)
        
       elif command == 'changeprefix':
         redis_server.set('current.prefix', params)
