@@ -44,7 +44,8 @@ Store
 
 Miscellaneous
 
-.getprefix:                                     no parameters, Works without the prefix as a static command <Default returns: '.'>
+.getprefix:                                     no parameters, Works without the prefix as a static command 
+                                                <Default returns: '.'>
 
 
 ```
