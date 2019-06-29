@@ -99,6 +99,9 @@ def reset_store(channel):
       redis_server.hdel('custom.shop.'+str(channel.guild.id)+'.'+store_type, single_keys)
   for item in default_shop.defaults:
     redis_server.hset('custom.shop.'+str(channel.guild.id)+'.Item', item, default_shop.defaults[item])
+  for item in default_shop.pictures:
+    redis_server.set('custom.shop.'+str(item)+'.picture', default_shop.pictures[item].encode('utf-8'))
+
 @client.event
 async def on_ready():
   print('Logged in as {0.user}, with prefix {1}'.format(client,prefix_char))
@@ -202,38 +205,6 @@ async def on_message(message):
       #Need to check how to delete a message in discord.py 
       #await channel.delete_messages(int(redis_server.hkeys('drop.'+str(channel.id)))) TODO Fix if extra time
     
-	
-#   #Help command
-# 	elif command == 'help':
-# 	  #Create embed
-# 	  embed=discord.Embed(title="Command List", color=0x00ffff)
-# 	  #create message values
-# 	  helpCur = "Get current balance.\nUsage: [none]/[id]/[username]/[username#discrim]"
-# 	  helpPick = "Picks up money that\'s been dropped."
-# 	  helpItems = "View the item shop."
-# 	  helpGuild = "View the guild shop."
-# 	  helpHouse = "View the houses shop."
-	  
-# 	  #TODO make me less sad by using an array
-# 	  #helpArr = [ helpCur, helpPick ]
-# 	  #add fields
-# 	  embed.set_thumbnail(url="https://i.imgur.com/0CO4hLT.png")
-# 	  embed.add_field(name=, value=Currency Bot supports these commands., inline=True)
-	  
-# 	  #making this more efficient in the future (i can't remember the name right now)
-# 	  for hcommand in range(len(helpArr)):
-# 		embed.addfield(name=
-	  
-# 	  embed.add_field(name=CURRENCY, value='', inline=False)
-# 	  embed.add_field(name=.$, .cur, .currency, value=str(helpCur), inline=False)
-# 	  embed.add_field(name=.pick, value=str(helpPick), inline=False)
-# 	  embed.add_field(name=STORE, value='', inline=False)
-# 	  embed.add_field(name=.shop, .store, .itemshop, value=str(helpItems), inline=False)
-# 	  embed.add_field(name=.guildshop, .shopguild, .servershop, value=str(helpGuild), inline=False)
-# 	  embed.add_field(name=.house, .houses, value=str(helpHouse), inline=False)
-# 	  embed.set_footer(text="this makes sam sad :(")
-# 	  await channel.send(embed=embed)
-	
     elif command in ['inv', 'inventory']:
       elements = collections.Counter(redis_server.lrange('inventory.id.'+str(message.author.id), 0, -1))
       embed_msg = discord.Embed(title=str(message.author)+'\'s Inventory')
@@ -340,7 +311,10 @@ async def on_message(message):
               if author_money >= price:
                 redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
                 redis_server.rpush('inventory.id.'+str(message.author.id), item.encode('utf-8'))
-                await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(item, price, currency_type)))
+                embed_msg=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(item, price, currency_type))
+                if redis_server.exists('custom.shop.'+str(item)+'.picture'):
+                  embed_msg.set_image(url=str(redis_server.get('custom.shop.'+str(item)+'.picture').decode('utf-8')))
+                await channel.send(embed=embed_msg)
               else:
                 await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
             except IndexError:
