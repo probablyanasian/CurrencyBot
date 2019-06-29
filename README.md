@@ -18,7 +18,8 @@
 ```
 Currency
 
-.cur [none]/[id]/[username]/[username#discrim]: 0-1 parameter; Gets the current amount of money someone owns. <Default: self>
+.cur [none]/[id]/[username]/[username#discrim]: 0-1 parameter; Gets the current amount of money someone owns.
+                                                <Default: self>
                                                 Aliases: .$, .cur, .currency
                                                 
 .pick:                                          no parameters; Picks up money that's been dropped.
@@ -26,7 +27,7 @@ Currency
 
 Store
 
-.buy [item type] [item num] [number of items]:  0-3 parameters; Purchases the specified item. <Default: [item] [idk] [1]>
+.buy [item type] [item num] [number of items]:  0-3 parameters; Purchases the specified item.
                                                 <Default Item Types: 
                                                 Guild: 'role', 'guilditem'
                                                 House: 'house', 'houses', 'homes'
