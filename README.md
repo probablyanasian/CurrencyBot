@@ -44,7 +44,7 @@ teststore [key] [value]: 2 parameters; Tries to store a key-value pair into the 
 
 ## Created by:
 - Probably an Asian#0508 (Programming)
-- perhapsacat#0348 (Art, kept the programmer sane)
+- perhapsacat#0348 (Art, also kept the programmer sane)
 
 
 *To Discord judge/evaluator: Thank you for taking the time to look at our project!*

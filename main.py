@@ -5,6 +5,7 @@ import asyncio
 import time
 import secrets
 import default_shop
+import collections
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -230,14 +231,72 @@ async def on_message(message):
             if shop_items[iter].decode('utf-8') == 'roleitem':
               rolename = message.guild.get_role(int(cur_shop[shop_items[iter]].decode('utf-8'))).name
               itemcost = redis_server.hget('custom.shop.'+str(channel.guild.id)+'.Guild.role', int(cur_shop[shop_items[iter]])).decode('utf-8')
-              embed.add_field(name=str(rolename)+' Role', value=str(itemcost)+' '+currency_type, inline=True)
+              embed.add_field(name='#'+str(iter+1)+' - '+str(rolename)+' Role', value=str(itemcost)+' '+currency_type, inline=True)
             else:
-              embed.add_field(name=' '.join(shop_items[iter].decode('utf-8').capitalize().split('_')), value=cur_shop[shop_items[iter]].decode('utf-8')+' '+currency_type, inline=True)
+              embed.add_field(name='#'+str(iter+1)+' - '+' '.join(shop_items[iter].decode('utf-8').capitalize().split('_')), value=cur_shop[shop_items[iter]].decode('utf-8')+' '+currency_type, inline=True)
         #send
         await channel.send(embed=embed)
       else:
         #if params are weird
         await channel.send(embed=discord.Embed(title=str(message.author), description='Parameter not understood.'))
+
+    elif command in ['buy', 'buyhouse', 'buyrole']:
+      split_params = params.split(' ', 2) #shop_type item_reference_style item
+      params_low = split_params.pop(0).lower()
+      if params_low != '':
+        if params_low in ['role', 'guilditem']:
+          shop_type = 'Guild'
+        elif params_low in ['house', 'homes', 'houses']:
+          shop_type = 'House'
+        elif params_low in ['items', 'item']:
+          shop_type = 'Item'
+      else:
+        shop_type = 'Item'
+        if command in ['buyrole', 'servershop']:
+          shop_type = 'Guild'
+        elif command in ['houses', 'house']:
+          shop_type = 'House'
+
+      if shop_type != None:
+        cur_shop = redis_server.hgetall('custom.shop.'+str(channel.guild.id)+'.'+shop_type)
+        shop_items = list(cur_shop)
+
+        if len(split_params) == 1 or split_params[0] in ['num', 'itemnum', 'number']:
+          if split_params[0] in ['num', 'itemnum', 'number']:
+            split_params.pop(0)
+          if shop_type == 'Guild':
+            if shop_items[int(split_params[0])-1].decode('utf-8') == 'roleitem':
+              rolename = message.guild.get_role(int(cur_shop[shop_items[int(split_params)-1]].decode('utf-8'))).name
+              itemcost = redis_server.hget('custom.shop.'+str(channel.guild.id)+'.Guild.role', int(cur_shop[shop_items[int(split_params[0])-1]])).decode('utf-8')
+            else:
+              price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
+              author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
+              if author_money >= price:
+                redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
+                await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(shop_items[int(split_params[0])-1].decode('utf-8'), price, currency_type)))
+              else:
+                await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
+          if shop_type == 'House':
+            price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
+            author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
+            if author_money >= price:
+              redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
+              await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(shop_items[int(split_params[0])-1].decode('utf-8'), price, currency_type)))
+            else:
+              await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
+
+          if shop_type == 'Item':
+            try:
+              price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
+              author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
+              if author_money >= price:
+                redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
+                await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(shop_items[int(split_params[0])-1].decode('utf-8'), price, currency_type)))
+              else:
+                await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
+            except IndexError:
+      else:
+        await channel.send(embed=discord.Embed(title=str(message.author), description='Unknown Parameter'))
 
     #Add items to store namely role items
     elif message.author.permissions_in(channel).manage_roles:
@@ -326,7 +385,11 @@ async def on_message(message):
           await channel.send(embed=discord.Embed(title=str(message.author), description=str(client.get_user(int(supposed_id)))+' recieved {0} {1}'.format(add_value, currency_type)))
         else: 
           await channel.send(embed=discord.Embed(title=str(message.author), description='Recipient is not in the DB'))
-    
+
+      elif command == 'shutdown':
+        await client.logout()
+        await client.close()
+
   #On a noncommand, every 3 minutes
   elif (round((time.time()), None) - int(redis_server.get('last.drop').decode('utf-8'))) > 180:
     #2 percent chance
