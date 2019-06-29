@@ -8,9 +8,11 @@
 
 - You'll also need to set up [redis](https://redis.io/download)
 
-- Just run `python3 main.py` and it should be up and running!
+- Set up your .env file, don't forget to rename it to `.env`
 
-- After that, type in a chat where the bot can see `cur_bot_reset_all` to reset the database to original
+- After that, just run `python3 main.py` and it should be up and running!
+
+- Then, type in a chat where the bot can see `cur_bot_reset_all` to reset the database to it's defaults
     
 ## Commands:
 
