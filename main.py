@@ -129,6 +129,7 @@ async def on_message(message):
       params = ''
     
     channel = message.channel
+    
     #Author details
     #author name str(message.author)
     #uname only str(message.author).rsplit("#", 1)[0]
@@ -200,27 +201,7 @@ async def on_message(message):
 
       #Need to check how to delete a message in discord.py 
       #await channel.delete_messages(int(redis_server.hkeys('drop.'+str(channel.id)))) TODO Fix if extra time
-    
-	
-	#Help command
-    elif command == 'help':
-      #Create embed
-      embed=discord.Embed(title="Command List", color=0x00ffff)
-      #create message values
-      helpCur = "Get current balance.\nUsage: [none]/[id]/[username]/[username#discrim]"
-      helpPick = "Picks up money that\'s been dropped."
-      
-      #add fields
-      embed.set_thumbnail(url="https://i.imgur.com/0CO4hLT.png")
-      embed.add_field(name=, value=Currency Bot supports these commands., inline=True)
-      embed.add_field(name=CURRENCY, value='', inline=False)
-      embed.add_field(name=.$, .cur, .currency, value=str(helpCur), inline=False)
-      embed.add_field(name=.pick, value=str(helpPick), inline=False)
-      embed.add_field(name=STORE, value='', inline=False)
-      embed.add_field(name=.shop, value='', inline=False)
-      embed.set_footer(text="this makes sam sad :(")
-      await channel.send(embed=embed)
-      
+
     #Store commands
     elif command in ['shop', 'store', 'itemshop', 'guildshop', 'shopguild', 'servershop', 'houses', 'house']:
       shop_type = None
@@ -286,26 +267,30 @@ async def on_message(message):
             split_params.pop(0)
           if shop_type == 'Guild':
             if shop_items[int(split_params[0])-1].decode('utf-8') == 'roleitem':
-              rolename = message.guild.get_role(int(cur_shop[shop_items[int(split_params)-1]].decode('utf-8'))).name
-              itemcost = redis_server.hget('custom.shop.'+str(channel.guild.id)+'.Guild.role', int(cur_shop[shop_items[int(split_params[0])-1]])).decode('utf-8')
+              cur_buy_role = message.guild.get_role(int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8')))
+              item_cost = int(redis_server.hget('custom.shop.'+str(channel.guild.id)+'.Guild.role', int(cur_shop[shop_items[int(split_params[0])-1]])).decode('utf-8'))
+              try:
+                author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
+                if author_money >= item_cost:
+                  redis_server.set('id.'+str(message.author.id), str(author_money-item_cost).encode('utf-8'))
+                  await message.author.add_roles(cur_buy_role)
+                  await channel.send(embed=discord.Embed(title=str(message.author), description='You bought the {0} role for {1} {2}'.format(cur_buy_role.name, item_cost, currency_type)))
+                else:
+                  await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
+              except AttributeError:
+                await channel.send(embed=discord.Embed(title='', description='**{0}** Check your current balance using `.cur` to get 100 {1}.'.format(str(message.author), currency_type)))
             else:
               price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
-              author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
-              if author_money >= price:
-                redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
-                await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(shop_items[int(split_params[0])-1].decode('utf-8'), price, currency_type)))
-              else:
-                await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
-          if shop_type == 'House':
-            price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
-            author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
-            if author_money >= price:
-              redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
-              await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(shop_items[int(split_params[0])-1].decode('utf-8'), price, currency_type)))
-            else:
-              await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
-
-          if shop_type == 'Item':
+              try:
+                author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
+                if author_money >= price:
+                  redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
+                  await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(shop_items[int(split_params[0])-1].decode('utf-8'), price, currency_type)))
+                else:
+                  await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
+              except AttributeError:
+                await channel.send(embed=discord.Embed(title='', description='**{0}** Check your current balance using `.cur` to get 100 {1}.'.format(str(message.author), currency_type)))
+          else:
             try:
               price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
               author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
@@ -315,6 +300,7 @@ async def on_message(message):
               else:
                 await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
             except IndexError:
+              await channel.send(embed=discord.Embed(title=str(message.author), description='Item not found'))
       else:
         await channel.send(embed=discord.Embed(title=str(message.author), description='Unknown Parameter'))
 
