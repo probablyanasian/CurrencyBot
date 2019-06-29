@@ -201,45 +201,49 @@ async def on_message(message):
 
       #Need to check how to delete a message in discord.py 
       #await channel.delete_messages(int(redis_server.hkeys('drop.'+str(channel.id)))) TODO Fix if extra time
-<<<<<<< HEAD
-
-=======
     
 	
-	"""
-	#Help command
-	elif command == 'help':
-	  #Create embed
-	  embed=discord.Embed(title="Command List", color=0x00ffff)
-	  #create message values
-	  helpCur = "Get current balance.\nUsage: [none]/[id]/[username]/[username#discrim]"
-	  helpPick = "Picks up money that\'s been dropped."
-	  helpItems = "View the item shop."
-	  helpGuild = "View the guild shop."
-	  helpHouse = "View the houses shop."
+#   #Help command
+# 	elif command == 'help':
+# 	  #Create embed
+# 	  embed=discord.Embed(title="Command List", color=0x00ffff)
+# 	  #create message values
+# 	  helpCur = "Get current balance.\nUsage: [none]/[id]/[username]/[username#discrim]"
+# 	  helpPick = "Picks up money that\'s been dropped."
+# 	  helpItems = "View the item shop."
+# 	  helpGuild = "View the guild shop."
+# 	  helpHouse = "View the houses shop."
 	  
-	  #TODO make me less sad by using an array
-	  #helpArr = [ helpCur, helpPick ]
-	  #add fields
-	  embed.set_thumbnail(url="https://i.imgur.com/0CO4hLT.png")
-	  embed.add_field(name=, value=Currency Bot supports these commands., inline=True)
+# 	  #TODO make me less sad by using an array
+# 	  #helpArr = [ helpCur, helpPick ]
+# 	  #add fields
+# 	  embed.set_thumbnail(url="https://i.imgur.com/0CO4hLT.png")
+# 	  embed.add_field(name=, value=Currency Bot supports these commands., inline=True)
 	  
-	  #making this more efficient in the future (i can't remember the name right now)
-	  for hcommand in range(len(helpArr)):
-		embed.addfield(name=
+# 	  #making this more efficient in the future (i can't remember the name right now)
+# 	  for hcommand in range(len(helpArr)):
+# 		embed.addfield(name=
 	  
-	  embed.add_field(name=CURRENCY, value='', inline=False)
-	  embed.add_field(name=.$, .cur, .currency, value=str(helpCur), inline=False)
-	  embed.add_field(name=.pick, value=str(helpPick), inline=False)
-	  embed.add_field(name=STORE, value='', inline=False)
-	  embed.add_field(name=.shop, .store, .itemshop, value=str(helpItems), inline=False)
-	  embed.add_field(name=.guildshop, .shopguild, .servershop, value=str(helpGuild), inline=False)
-	  embed.add_field(name=.house, .houses, value=str(helpHouse), inline=False)
-	  embed.set_footer(text="this makes sam sad :(")
-	  await channel.send(embed=embed)
-	"""
+# 	  embed.add_field(name=CURRENCY, value='', inline=False)
+# 	  embed.add_field(name=.$, .cur, .currency, value=str(helpCur), inline=False)
+# 	  embed.add_field(name=.pick, value=str(helpPick), inline=False)
+# 	  embed.add_field(name=STORE, value='', inline=False)
+# 	  embed.add_field(name=.shop, .store, .itemshop, value=str(helpItems), inline=False)
+# 	  embed.add_field(name=.guildshop, .shopguild, .servershop, value=str(helpGuild), inline=False)
+# 	  embed.add_field(name=.house, .houses, value=str(helpHouse), inline=False)
+# 	  embed.set_footer(text="this makes sam sad :(")
+# 	  await channel.send(embed=embed)
 	
->>>>>>> 5ada686b76f8c3947de02471d2c68020f2f4b01d
+    elif command in ['inv', 'inventory']:
+      elements = collections.Counter(redis_server.lrange('inventory.id.'+str(message.author.id), 0, -1))
+      embed_msg = discord.Embed(title=str(message.author)+'\'s Inventory')
+      keys = list(elements.keys())
+      values = list(elements.values())
+      for iter in range(elements.__len__()):
+        embed_msg.add_field(name=str(values[iter])+' '+str(keys[iter].decode('utf-8')), value='---', inline=False)
+      await channel.send(embed=embed_msg)
+      
+
     #Store commands
     elif command in ['shop', 'store', 'itemshop', 'guildshop', 'shopguild', 'servershop', 'houses', 'house']:
       shop_type = None
@@ -281,20 +285,18 @@ async def on_message(message):
 
     elif command in ['buy', 'buyhouse', 'buyrole']:
       split_params = params.split(' ', 2) #shop_type item_reference_style item
-      params_low = split_params.pop(0).lower()
+      params_low = split_params[0].lower()
+      shop_type = None
       if params_low != '':
         if params_low in ['role', 'guilditem']:
           shop_type = 'Guild'
         elif params_low in ['house', 'homes', 'houses']:
           shop_type = 'House'
-        elif params_low in ['items', 'item']:
+        else:
           shop_type = 'Item'
-      else:
-        shop_type = 'Item'
-        if command in ['buyrole', 'servershop']:
-          shop_type = 'Guild'
-        elif command in ['houses', 'house']:
-          shop_type = 'House'
+
+      if split_params[0].lower() in ['role', 'guilditem', 'house', 'homes', 'houses', 'items', 'item']:
+        split_params.pop(0)
 
       if shop_type != None:
         cur_shop = redis_server.hgetall('custom.shop.'+str(channel.guild.id)+'.'+shop_type)
@@ -318,11 +320,13 @@ async def on_message(message):
               except AttributeError:
                 await channel.send(embed=discord.Embed(title='', description='**{0}** Check your current balance using `.cur` to get 100 {1}.'.format(str(message.author), currency_type)))
             else:
-              price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
               try:
+                price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
+                item = shop_items[int(split_params[0])-1].decode('utf-8')
                 author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
                 if author_money >= price:
                   redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
+                  redis_server.rpush('inventory.id.'+str(message.author.id), item.encode('utf-8'))
                   await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(shop_items[int(split_params[0])-1].decode('utf-8'), price, currency_type)))
                 else:
                   await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
@@ -331,10 +335,12 @@ async def on_message(message):
           else:
             try:
               price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
+              item = shop_items[int(split_params[0])-1].decode('utf-8')
               author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
               if author_money >= price:
                 redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
-                await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(shop_items[int(split_params[0])-1].decode('utf-8'), price, currency_type)))
+                redis_server.rpush('inventory.id.'+str(message.author.id), item.encode('utf-8'))
+                await channel.send(embed=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(item, price, currency_type)))
               else:
                 await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
             except IndexError:
