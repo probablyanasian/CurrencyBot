@@ -49,6 +49,8 @@ change_currency()
 
 #sets db to default values
 def default_all(channel):
+  redis_server.set('current.prefix', '.')
+  redis_server.set('current.currency', 'dollars')
   change_prefix()
   change_currency()
   reset_store(channel)
@@ -115,6 +117,7 @@ async def on_message(message):
   if message.content == '.getprefix':
     await message.channel.send(embed=discord.Embed(title=str(message.author), description="Current prefix is {0}".format(redis_server.get('current.prefix').decode('utf-8'))))
 
+  #Reset the defaultable things to default
   if str(message.author.id) in os.getenv('owner_id'):
     if message.content == 'cur_bot_reset_all':
       default_all(message.channel)
@@ -218,6 +221,7 @@ async def on_message(message):
     elif command in ['shop', 'store', 'itemshop', 'guildshop', 'shopguild', 'servershop', 'houses', 'house']:
       shop_type = None
       params_low = params.lower() 
+      #Get the store type
       if params_low != '':
         if params_low in ['server', 'guild']:
           shop_type = 'Guild'
@@ -232,8 +236,11 @@ async def on_message(message):
         elif command in ['houses', 'house']:
           shop_type = 'House'
       if shop_type != None:
+        #Get the current shop as a dict
         cur_shop = redis_server.hgetall('custom.shop.'+str(channel.guild.id)+'.'+shop_type)
+        #All of the shop items
         shop_items = list(cur_shop)
+        #The amount of items in the shop
         item_count = len(shop_items)
         #Create embed
         embed=discord.Embed(title=shop_type+' Shop', color=0xff15e6)
@@ -241,13 +248,18 @@ async def on_message(message):
           #ensure max of 9 objects, TODO have to paginate
           if iter <= 8:
             #add embed items
+            #If it's a role being sold
             if shop_items[iter].decode('utf-8') == 'roleitem':
+              #Get the name of the role
               rolename = message.guild.get_role(int(cur_shop[shop_items[iter]].decode('utf-8'))).name
+              #Calculate the item cost
               itemcost = redis_server.hget('custom.shop.'+str(channel.guild.id)+'.Guild.role', int(cur_shop[shop_items[iter]])).decode('utf-8')
+              #add the embed
               embed.add_field(name='#'+str(iter+1)+' - '+str(rolename)+' Role', value=str(itemcost)+' '+currency_type, inline=True)
             else:
+              #get the name and price normally and add to the embed
               embed.add_field(name='#'+str(iter+1)+' - '+' '.join(shop_items[iter].decode('utf-8').capitalize().split('_')), value=cur_shop[shop_items[iter]].decode('utf-8')+' '+currency_type, inline=True)
-        #send
+        #send the embed
         await channel.send(embed=embed)
       else:
         #if params are weird
@@ -256,6 +268,7 @@ async def on_message(message):
     elif command in ['buy', 'buyhouse', 'buyrole']:
       split_params = params.split(' ', 2) #shop_type item_reference_style item
       params_low = split_params[0].lower()
+      #get the shop type
       shop_type = None
       if params_low != '':
         if params_low in ['role', 'guilditem']:
@@ -264,12 +277,14 @@ async def on_message(message):
           shop_type = 'House'
         else:
           shop_type = 'Item'
-
+      #Delete the shop type in params
       if split_params[0].lower() in ['role', 'guilditem', 'house', 'homes', 'houses', 'items', 'item']:
         split_params.pop(0)
-
+      #Check if there is a shop type
       if shop_type != None:
+        #Get the current shop items and price as a dict
         cur_shop = redis_server.hgetall('custom.shop.'+str(channel.guild.id)+'.'+shop_type)
+        #get the shop items alone
         shop_items = list(cur_shop)
 
         if len(split_params) == 1 or split_params[0] in ['num', 'itemnum', 'number']:
@@ -304,17 +319,24 @@ async def on_message(message):
                 await channel.send(embed=discord.Embed(title='', description='**{0}** Check your current balance using `.cur` to get 100 {1}.'.format(str(message.author), currency_type)))
           else:
             try:
+              #find vars that will be needed, if not defined here, will need to be recalculated and be more inefficient
               price = int(cur_shop[shop_items[int(split_params[0])-1]].decode('utf-8'))
               item = shop_items[int(split_params[0])-1].decode('utf-8')
               author_money = int(redis_server.get('id.'+str(message.author.id)).decode('utf-8'))
+              #Check they have enough money
               if author_money >= price:
+                #Set their new balance
                 redis_server.set('id.'+str(message.author.id), str(author_money-price).encode('utf-8'))
+                #Add to their inventory
                 redis_server.rpush('inventory.id.'+str(message.author.id), item.encode('utf-8'))
+                #Send a success message 
                 embed_msg=discord.Embed(title=str(message.author), description='You bought a {0} for {1} {2}'.format(item, price, currency_type))
                 if redis_server.exists('custom.shop.'+str(item)+'.picture'):
+                  #If a picture is defined, add it
                   embed_msg.set_image(url=str(redis_server.get('custom.shop.'+str(item)+'.picture').decode('utf-8')))
                 await channel.send(embed=embed_msg)
               else:
+                #Not enough money
                 await channel.send(embed=discord.Embed(title='', description='**{0}** You don\'t have enough {1}'.format(str(message.author), currency_type)))
             except IndexError:
               await channel.send(embed=discord.Embed(title=str(message.author), description='Item not found'))
@@ -365,6 +387,7 @@ async def on_message(message):
 
     #Owner only
     if str(message.author.id) in os.getenv('owner_id'):
+      #Delete everything in the currently used db
       if command == 'flushdb':
         await channel.send(embed=discord.Embed(title="Are you sure? This will delete everything in the DB (Y/n)", color=16724787))
         
@@ -381,16 +404,19 @@ async def on_message(message):
           await channel.send(embed=discord.Embed(title="Current database flushed, prefix reset to '.'"))
           default_all(message.channel)
        
+      #Change the global prefix
       elif command == 'changeprefix':
         redis_server.set('current.prefix', params)
         change_prefix()
         await channel.send(embed=discord.Embed(title=str(message.author), description='Prefix changed to {0}'.format(params)))
 
+      #Change the global currency "word"
       elif command == 'changecurrency':
         redis_server.set('current.currency', params)
         change_currency()
         await channel.send(embed=discord.Embed(title=str(message.author), description='Currency changed to {0}'.format(params)))
 
+      #Award someone money
       elif command == 'award':
         split_params = params.split(' ', 1)
         try:
@@ -409,6 +435,7 @@ async def on_message(message):
         else: 
           await channel.send(embed=discord.Embed(title=str(message.author), description='Recipient is not in the DB'))
 
+      #Safely shutdown the bot
       elif command == 'shutdown':
         await client.logout()
         await client.close()
