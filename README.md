@@ -16,11 +16,12 @@
 
 ### Out of debug mode:
 ```
-cur [none]/[id]/[username]/[username#discrim]: 0-1 parameter; Gets the current amount of money someone owns <Default: self>
+**.cur [none]/[id]/[username]/[username#discrim]**: 0-1 parameter; Gets the current amount of money someone owns <Default: self>
+                                                    AKA: .$, .cur, .currency
 
-.getprefix: no parameters, works without the prefix as a static command <Default returns: '.'>
+**.getprefix:** no parameters, works without the prefix as a static command <Default returns: '.'>
 
-pick: no parameters; picks up money that's been dropped.
+**.pick**: no parameters; picks up money that's been dropped.
 ```
 
 ### Owner only:
