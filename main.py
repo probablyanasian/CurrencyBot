@@ -203,22 +203,35 @@ async def on_message(message):
 	
 	#Help command
 	elif command == 'help':
-		#Create embed
-		embed=discord.Embed(title="Command List", color=0x00ffff)
-		#create message values
-		helpCur = "Get current balance.\nUsage: [none]/[id]/[username]/[username#discrim]"
-		helpPick = "Picks up money that\'s been dropped."
-		
-		#add fields
-		embed.set_thumbnail(url="https://i.imgur.com/0CO4hLT.png")
-		embed.add_field(name=, value=Currency Bot supports these commands., inline=True)
-		embed.add_field(name=CURRENCY, value='', inline=False)
-		embed.add_field(name=.$, .cur, .currency, value=str(helpCur), inline=False)
-		embed.add_field(name=.pick, value=str(helpPick), inline=False)
-		embed.add_field(name=STORE, value='', inline=False)
-		embed.add_field(name=.shop, value='', inline=False)
-		embed.set_footer(text="this makes sam sad :(")
-		await channel.send(embed=embed)
+	  #Create embed
+	  embed=discord.Embed(title="Command List", color=0x00ffff)
+	  #create message values
+	  helpCur = "Get current balance.\nUsage: [none]/[id]/[username]/[username#discrim]"
+	  helpPick = "Picks up money that\'s been dropped."
+	  helpItems = "View the item shop."
+	  helpGuild = "View the guild shop."
+	  helpHouse = "View the houses shop."
+	  
+	  #TODO make me less sad by using an array
+	  #helpArr = [ helpCur, helpPick ]
+	  #add fields
+	  embed.set_thumbnail(url="https://i.imgur.com/0CO4hLT.png")
+	  embed.add_field(name=, value=Currency Bot supports these commands., inline=True)
+	  
+	  """
+	  #making this more efficient in the future (i can't remember the name right now)
+	  for hcommand in range(len(helpArr)):
+		embed.addfield(name=
+	  """
+	  embed.add_field(name=CURRENCY, value='', inline=False)
+	  embed.add_field(name=.$, .cur, .currency, value=str(helpCur), inline=False)
+	  embed.add_field(name=.pick, value=str(helpPick), inline=False)
+	  embed.add_field(name=STORE, value='', inline=False)
+	  embed.add_field(name=.shop, .store, .itemshop, value=str(helpItems), inline=False)
+	  embed.add_field(name=.guildshop, .shopguild, .servershop, value=str(helpGuild), inline=False)
+	  embed.add_field(name=.house, .houses, value=str(helpHouse), inline=False)
+	  embed.set_footer(text="this makes sam sad :(")
+	  await channel.send(embed=embed)
 		
     #Store commands
     elif command in ['shop', 'store', 'itemshop', 'guildshop', 'shopguild', 'servershop', 'houses', 'house']:
