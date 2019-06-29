@@ -10,7 +10,7 @@ import collections
 from dotenv import load_dotenv
 load_dotenv()
 
-debug = True
+debug = False
 owner = os.getenv('owner_id')
 
 redis_server = redis.Redis(
@@ -138,7 +138,6 @@ async def on_message(message):
     #uname only str(message.author).rsplit("#", 1)[0]
     #discriminator str(message.author.discriminator)
     #author id str(message.author.id)
-
 
     #Currency command
     if command in ['$', 'cur', 'currency']:

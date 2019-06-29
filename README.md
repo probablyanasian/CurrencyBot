@@ -41,6 +41,7 @@ Store
 .shop server, .shop guild, .guildshop,          no parameters; Shows the guild shop.
 .shopguild, .servershop:
 
+.inv, .inventory                                no parameters
 
 Miscellaneous
 
@@ -54,11 +55,11 @@ Miscellaneous
 ```
 flushdb:                                        no parameters; Clears the currently used RedisDB
 
-award [value] [user]:                           2 parameters; Gives the specified [user] [value] money.
+.award [value] [user]:                           2 parameters; Gives the specified [user] [value] money.
 
-changeprefix [newprefix]:                       1 parameter; Changes to prefix to [newprefix]
+.changeprefix [newprefix]:                       1 parameter; Changes to prefix to [newprefix]
 
-changecurrency [newcurrency]:                   1 parameter; Changes to currency to [newcurrency]
+.changecurrency [newcurrency]:                   1 parameter; Changes to currency to [newcurrency]
 
 cur_bot_reset_all:                              no prefix; sets all DBs with a default to their default states
 ```
@@ -66,7 +67,7 @@ cur_bot_reset_all:                              no prefix; sets all DBs with a d
 ### In debug mode:
 
 ```
-teststore [key] [value]: 2 parameters; Tries to store a key-value pair into the Redis DB.
+.teststore [key] [value]: 2 parameters; Tries to store a key-value pair into the Redis DB.
 ```
 
 ## Created by:
