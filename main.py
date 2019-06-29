@@ -100,7 +100,7 @@ def reset_store(channel):
     #add shop items
     for single_keys in redis_server.hkeys('custom.shop.'+store_type):
       redis_server.hdel('custom.shop.'+str(channel.guild.id)+'.'+store_type, single_keys)
-      
+
   for item in default_shop.defaults:
     #Add default shop items
     redis_server.hset('custom.shop.'+str(channel.guild.id)+'.Item', item, default_shop.defaults[item])
@@ -218,7 +218,7 @@ async def on_message(message):
       keys = list(elements.keys())
       values = list(elements.values())
       for iter in range(elements.__len__()):
-        embed_msg.add_field(name=str(values[iter])+' '+str(keys[iter].decode('utf-8')), value='---', inline=False)
+        embed_msg.add_field(name=str(values[iter])+' '+str(keys[iter].decode('utf-8')), value='---', inline=True)
       await channel.send(embed=embed_msg)
       
 
