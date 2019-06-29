@@ -97,11 +97,16 @@ def ident_to_id(ident):
 
 def reset_store(channel):
   for store_type in ['Guild', 'House', 'Item']:
+    #add shop items
     for single_keys in redis_server.hkeys('custom.shop.'+store_type):
       redis_server.hdel('custom.shop.'+str(channel.guild.id)+'.'+store_type, single_keys)
+      
   for item in default_shop.defaults:
+    #Add default shop items
     redis_server.hset('custom.shop.'+str(channel.guild.id)+'.Item', item, default_shop.defaults[item])
+
   for item in default_shop.pictures:
+    #Add default shop pictures
     redis_server.set('custom.shop.'+str(item)+'.picture', default_shop.pictures[item].encode('utf-8'))
 
 @client.event
